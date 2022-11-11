@@ -1,13 +1,18 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from peewee import *
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
-# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@postgresserver/db"
+import pedantic_models
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+pg_db = PostgresqlDatabase('data_feed', user='postgres', password='123',
+                           host='localhost', port=5432)
 
-Base = declarative_base()
+class BaseModel(Model):
+    class Meta:
+        database = pg_db
+
+class Product(BaseModel):
+    id = IntegerField(column_name='id')
+    title = TextField(column_name='title')
+    price = FloatField(column_name='price')
+
+    class Meta:
+        table_name = 'product'

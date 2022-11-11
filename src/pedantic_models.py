@@ -2,14 +2,8 @@ from pydantic import BaseModel
 
 
 class ItemBase(BaseModel):
-    id: int
-    brandName: str
-    shortName: str
-    categoryId: int
-    categoryName: str
-    price: int
-    oldPrice: int
-    clubPrice: int
+    title: str
+    price: float
 
 
 class ItemCreate(ItemBase):

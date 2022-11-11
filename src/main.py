@@ -1,53 +1,42 @@
 from operator import itemgetter
-from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi.responses import FileResponse
 import pandas as pd
+import aiofiles
 
-from . import crud, models, schemas
-from .database import SessionLocal, engine
-
-models.Base.metadata.create_all(bind=engine)
+import crud, pedantic_models
 
 app = FastAPI()
 
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@app.post("/create_items/", response_model=schemas.Item)
-def create_item_for_user(
-    item: schemas.ItemCreate, db: Session = Depends(get_db)
+@app.post("/create_item/", response_model=pedantic_models.Item)
+def create_item(
+    item: pedantic_models.ItemCreate
 ):
-    return crud.create_user_item(db=db, item=item)
+    return crud.create_product(item=item)
 
-
-@app.get("/items/", response_model=list[schemas.Item])
-def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    items = crud.get_items(db, skip=skip, limit=limit)
+@app.get("/items/", response_model=list[pedantic_models.Item])
+def read_items(limit: int = 100):
+    items = crud.get_products(limit=limit)
     return items
 
-@app.get("/items/delete_all/")
-def delete_all_items(db: Session = Depends(get_db)):
-    crud.delete_items(db)
+@app.get("/items/{id}/")
+def delete_item(id: int):
+    crud.delete_product(id=id)
 
-@app.get("/add_items_to_db_from_json/")
-def add_items_to_db_from_json(db: Session = Depends(get_db)):
-    crud.add_items_from_file(db=db)     
+@app.post("/create_items/")
+def create_items(
+    item: pedantic_models.ItemCreate
+):
+    crud.create_product(item=item)
 
-@app.get("/laptops/{brandName}/price/average/")
-def get_laptop_avegare_price(brandName: str, db: Session = Depends(get_db)):
-    items = crud.get_laptop_by_brand(db=db, brandName=brandName)
-    prices = []
-    
-    for item in items:
-        prices.append(item.price)
-    
-    df_prices = pd.DataFrame(prices)
-    return df_prices.mean()
-    
+@app.post("/upload_file/")
+async def upload_file(file: UploadFile):
+    # TODO: 
+    async with aiofiles.open('../parserProject/new_file.xlsx', 'wb') as out_file:
+        while content := await file.read(1024):  # async read chunk
+            await out_file.write(content)  # async write chunk
+    return {"filename": file.filename}
+
+@app.get("/download-file")
+def download_file(path: str):
+    return FileResponse(path=path, filename=path)
