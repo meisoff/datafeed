@@ -1,21 +1,46 @@
 import json
-from operator import itemgetter
-from sqlalchemy.orm import Session
-import json
+import pandas as pd
+import database
 
-import pedantic_models, database
+### Работа с данными из файла ###
+# Добавляет элемент в таблицу product
+def create_product(product: dict):
+    database.Product.create(**product)
 
-def create_product(product: pedantic_models.Item):
-    database.Product.create(**product.dict())
+# Добавляет элемент в таблицу links
+def create_link(link: dict):
+    database.Links.create(index=link['index'], link=link['url'], region=link['region'], formula=link['formula'])
 
-def get_products(limit: int = 100):
-    products = []
-    for product in database.Product.select().order_by(database.Product.price.desc()).dicts().execute():
-        products.append(product)
-    return products
+### Работа с парсингом ###
+# Забирает все данные, нужные для парсинга
+def get_items_for_parsing():
+    return database.Links.select().dicts()
 
-def delete_product(id: int):
-    database.Product.delete_by_id(id)
+# Добавляет результат парсинга
+def create_result(result: dict):
+    database.Results.create(index=result['index'], link=result['url'], region=result['region'], date=result['date'], price=result['price'], stock=result['stock'])
 
-def add_many_items(items: list):
-    database.Product.insert_many(items).execute()
+# Добавляет несколько результатов парсинга
+def create_many_result(results: list):
+    database.Results.insert_many(results)
+
+### Работа с данными результирующих файлов ###
+# Получить все данные из result
+def get_data_for_file():
+    return database.Results.select().dicts()
+
+# Получить данные из Product
+def get_from_products():
+    return database.Product.select().dicts()
+    
+# Добавляет информацию о файле
+def create_file_info(file_info: dict):
+    database.FileInfo.create(date=file_info['date'], name=file_info['name'], size=file_info['size'], format=file_info['format'])
+
+# Берет последние 5 элементов с информацией о результирующих файлах
+def get_five_file_infos():
+    return database.FileInfo.select().limit(5).dicts()
+
+# Берет данные файла по индексу
+def get_file_info_by_index(index: int):
+    return database.FileInfo.select().where(database.FileInfo.id == index).dicts()
